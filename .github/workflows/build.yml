@@ -57,7 +57,7 @@ jobs:
             --command "./gradlew assemble" \
             ./codeql-database
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
 
       # Analyze CodeQL database
       - name: Analyze CodeQL database
@@ -68,7 +68,7 @@ jobs:
             --output=results.sarif \
             java-security-and-quality
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
 
       # Upload results to GitHub Code Scanning
       - name: Upload CodeQL results
@@ -76,4 +76,4 @@ jobs:
           gh codeql github upload-results \
             --sarif=results.sarif
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
