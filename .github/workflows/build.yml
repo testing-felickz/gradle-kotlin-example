@@ -1,0 +1,79 @@
+name: Build with CodeQL Analysis
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "master" branch
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Required permissions for CodeQL analysis and upload
+permissions:
+  contents: read
+  security-events: write
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
+      
+      # Set up Java for Gradle build
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # Make gradlew executable
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      # Install GitHub CLI and CodeQL extension
+      - name: Install GitHub CLI and CodeQL extension
+        run: |
+          # Install GitHub CLI (should already be available in ubuntu-latest)
+          gh --version
+          
+          # Install CodeQL CLI extension
+          gh extension install github/gh-codeql
+
+      # Create CodeQL database
+      - name: Create CodeQL database
+        run: |
+          gh codeql database create \
+            --language=java \
+            --source-root . \
+            --command "./gradlew assemble" \
+            ./codeql-database
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      # Analyze CodeQL database
+      - name: Analyze CodeQL database
+        run: |
+          gh codeql database analyze \
+            ./codeql-database \
+            --format=sarif-latest \
+            --output=results.sarif \
+            java-security-and-quality
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      # Upload results to GitHub Code Scanning
+      - name: Upload CodeQL results
+        run: |
+          gh codeql github upload-results \
+            --sarif=results.sarif
+        env:
+          GH_TOKEN: ${{ github.token }}
